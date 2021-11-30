@@ -1,7 +1,7 @@
 #include <iostream>
 #include <ctime>
 #include <iomanip>
-#include <map>
+#include <vector>
 
 struct person
 {
@@ -9,16 +9,51 @@ struct person
     std::tm birthdayDate;
 };
 
+std::tm getTodayDate()
+{
+    std::time_t t=std::time(nullptr);
+    return *std::localtime(&t);
+}
+
+std::time_t getNearestBirthday(std::tm birthday)
+{
+    std::time_t t;
+    birthday.tm_year=getTodayDate().tm_year;
+    t=std::mktime(&birthday);
+
+    if (std::difftime(t, std::time(nullptr)) < 0)
+    {
+        birthday.tm_year++;
+        t = std::mktime(&birthday);
+    }
+
+    return t;
+}
+
+void arrangeByNearestBirthday(std::vector<person>& friends)
+{
+    person temp;
+
+    for(int i=0;i<friends.size()-1;i++)
+    {
+        for(int j=0;j<friends.size()-i-1;j++)
+        {
+            if(getNearestBirthday(friends[j].birthdayDate)>getNearestBirthday(friends[j+1].birthdayDate))
+            {
+                temp = friends[j];
+                friends[j]=friends[j+1];
+                friends[j+1]=temp;
+            }
+        }
+    }
+}
+
 int main()
 {
     person man;
-    std::map<std::time_t, person> friends;
-    std::tm nextBirthday, todayDate;
-    std::time_t t;
+    std::vector<person> friends;
 
-    t=std::time(nullptr);
-    todayDate=*std::localtime(&t);
-    man.birthdayDate=todayDate;
+    man.birthdayDate=getTodayDate();
 
     do
     {
@@ -27,26 +62,19 @@ int main()
         if(man.name=="end")
             break;
         std::cin >> std::get_time(&man.birthdayDate, "%d/%m/%Y");
-        nextBirthday=man.birthdayDate;
-        nextBirthday.tm_year=todayDate.tm_year;
-
-        t=std::mktime(&nextBirthday);
-        if(std::difftime(t, std::time(nullptr))<0)
-        {
-            nextBirthday.tm_year++;
-            t=std::mktime(&nextBirthday);
-        }
 
         if(std::cin.fail())
             std::cin.clear();
         else
-            friends[t]=man;
+            friends.push_back(man);
     }
     while(true);
 
-    for(auto it=friends.begin();it!=friends.end();it++)
+    arrangeByNearestBirthday(friends);
+
+    for(int i=0;i<friends.size();i++)
     {
-        std::cout << it->second.name << " " << std::put_time(&(it->second.birthdayDate), "%d/%m/%Y") << std::endl;
+        std::cout << friends[i].name << " " << std::put_time(&(friends[i].birthdayDate), "%d/%m/%Y") << std::endl;
     }
 
     return 0;
